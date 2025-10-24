@@ -1,0 +1,133 @@
+{
+  "name": "@ldesign/publisher",
+  "version": "1.0.0",
+  "description": "🚀 功能强大的 NPM 发布管理插件 - 智能版本管理、自动 Changelog、多 Registry 支持、Monorepo 批量发布、发布验证与回滚",
+  "keywords": [
+    "npm",
+    "publish",
+    "publisher",
+    "release",
+    "version",
+    "versioning",
+    "changelog",
+    "conventional-commits",
+    "semver",
+    "monorepo",
+    "lerna",
+    "registry",
+    "automation",
+    "ci-cd",
+    "deployment",
+    "rollback",
+    "workspace",
+    "pnpm",
+    "validation",
+    "2fa"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "homepage": "https://github.com/ldesign/packages/publisher#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ldesign/packages/publisher"
+  },
+  "bugs": {
+    "url": "https://github.com/ldesign/packages/publisher/issues"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.cjs"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.cjs"
+    },
+    "./validators": {
+      "types": "./dist/validators/index.d.ts",
+      "import": "./dist/validators/index.js",
+      "require": "./dist/validators/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ldesign-publisher": "./bin/cli.js",
+    "ld-publish": "./bin/cli.js"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "dist",
+    "bin",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@ldesign/kit": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "conventional-changelog-core": "^7.0.0",
+    "conventional-commits-parser": "^6.0.0",
+    "conventional-recommended-bump": "^10.0.0",
+    "execa": "^8.0.1",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.2.12",
+    "ora": "^8.0.1",
+    "semver": "^7.6.0",
+    "zod": "^3.22.4",
+    "boxen": "^7.1.1",
+    "cli-table3": "^0.6.5",
+    "listr2": "^8.0.1",
+    "pretty-ms": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/conventional-changelog-core": "^8.0.0",
+    "@types/conventional-commits-parser": "^5.0.0",
+    "@types/conventional-recommended-bump": "^9.0.3",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.11.16",
+    "@types/semver": "^7.5.6",
+    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/ui": "^1.6.1",
+    "eslint": "^9.18.0",
+    "rimraf": "^5.0.5",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^1.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
+
