@@ -31,6 +31,8 @@ export class ChangelogGenerator {
   private packageName: string
   private options: Required<ChangelogOptions>
   private gitUtils: ReturnType<typeof createGitUtils>
+  private repositoryUrl: string | null = null
+  private repositoryType: 'github' | 'gitlab' | 'gitee' | 'bitbucket' | 'other' = 'other'
 
   // 默认的 commit 类型配置
   private static DEFAULT_TYPES: CommitTypeConfig[] = [
@@ -68,6 +70,74 @@ export class ChangelogGenerator {
       regenerate: false,
       ...options.options,
     }
+
+    // 初始化仓库信息
+    this.initializeRepository().catch(() => {
+      logger.debug('无法获取仓库信息，PR 和 commit 链接将不可用')
+    })
+  }
+
+  /**
+   * 初始化仓库信息
+   * 
+   * 从 Git remote 获取仓库 URL 并判断仓库类型
+   * 
+   * @private
+   */
+  private async initializeRepository(): Promise<void> {
+    try {
+      const remoteUrl = await this.gitUtils.getRemoteUrl()
+      this.repositoryUrl = this.parseRepositoryUrl(remoteUrl)
+      this.repositoryType = this.detectRepositoryType(this.repositoryUrl)
+
+      logger.debug(`仓库类型: ${this.repositoryType}, URL: ${this.repositoryUrl}`)
+    } catch (error) {
+      // 静默失败，链接功能将不可用
+      this.repositoryUrl = null
+    }
+  }
+
+  /**
+   * 解析仓库 URL
+   * 
+   * 将 Git URL 转换为 HTTPS URL
+   * 
+   * @param remoteUrl - Git remote URL
+   * @returns HTTPS URL
+   * @private
+   */
+  private parseRepositoryUrl(remoteUrl: string): string {
+    // 移除 .git 后缀
+    let url = remoteUrl.replace(/\.git$/, '')
+
+    // 转换 SSH URL 为 HTTPS
+    // git@github.com:user/repo -> https://github.com/user/repo
+    url = url.replace(/^git@([^:]+):(.+)$/, 'https://$1/$2')
+
+    // 移除 git:// 协议
+    url = url.replace(/^git:\/\//, 'https://')
+
+    return url
+  }
+
+  /**
+   * 检测仓库类型
+   * 
+   * @param url - 仓库 URL
+   * @returns 仓库类型
+   * @private
+   */
+  private detectRepositoryType(url: string): 'github' | 'gitlab' | 'gitee' | 'bitbucket' | 'other' {
+    if (url.includes('github.com')) {
+      return 'github'
+    } else if (url.includes('gitlab.com') || url.includes('gitlab.')) {
+      return 'gitlab'
+    } else if (url.includes('gitee.com')) {
+      return 'gitee'
+    } else if (url.includes('bitbucket.org')) {
+      return 'bitbucket'
+    }
+    return 'other'
   }
 
   /**
@@ -253,18 +323,54 @@ export class ChangelogGenerator {
 
   /**
    * 获取 PR 链接
+   * 
+   * 根据仓库类型生成正确的 PR 链接
+   * 
+   * @param pr - PR 编号
+   * @returns PR 链接 URL
+   * @private
    */
   private getPRLink(pr: string): string {
-    // TODO: 从 git remote 获取仓库 URL
-    return `https://github.com/owner/repo/pull/${pr}`
+    if (!this.repositoryUrl) {
+      return `#${pr}`
+    }
+
+    switch (this.repositoryType) {
+      case 'github':
+      case 'gitee':
+        return `${this.repositoryUrl}/pull/${pr}`
+      case 'gitlab':
+        return `${this.repositoryUrl}/merge_requests/${pr}`
+      case 'bitbucket':
+        return `${this.repositoryUrl}/pull-requests/${pr}`
+      default:
+        return `#${pr}`
+    }
   }
 
   /**
    * 获取 Commit 链接
+   * 
+   * 根据仓库类型生成正确的 commit 链接
+   * 
+   * @param hash - Commit hash
+   * @returns Commit 链接 URL
+   * @private
    */
   private getCommitLink(hash: string): string {
-    // TODO: 从 git remote 获取仓库 URL
-    return `https://github.com/owner/repo/commit/${hash}`
+    if (!this.repositoryUrl) {
+      return hash
+    }
+
+    switch (this.repositoryType) {
+      case 'github':
+      case 'gitlab':
+      case 'gitee':
+      case 'bitbucket':
+        return `${this.repositoryUrl}/commit/${hash}`
+      default:
+        return hash
+    }
   }
 
   /**

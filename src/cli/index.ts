@@ -10,6 +10,8 @@ import { createPublishCommand } from './commands/publish.js'
 import { createVersionCommand } from './commands/version.js'
 import { createChangelogCommand } from './commands/changelog.js'
 import { createRollbackCommand } from './commands/rollback.js'
+import { createPrecheckCommand } from './commands/precheck.js'
+import { createStatsCommand } from './commands/stats.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -40,6 +42,8 @@ export async function createCLI(): Promise<Command> {
   program.addCommand(createVersionCommand())
   program.addCommand(createChangelogCommand())
   program.addCommand(createRollbackCommand())
+  program.addCommand(createPrecheckCommand())
+  program.addCommand(createStatsCommand())
 
   return program
 }

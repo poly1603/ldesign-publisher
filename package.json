@@ -1,7 +1,7 @@
 {
   "name": "@ldesign/publisher",
-  "version": "1.0.0",
-  "description": "🚀 功能强大的 NPM 发布管理插件 - 智能版本管理、自动 Changelog、多 Registry 支持、Monorepo 批量发布、发布验证与回滚",
+  "version": "1.2.0",
+  "description": "🚀 功能强大的 NPM 发布管理插件 - 智能版本管理、自动 Changelog、多 Registry 支持、Monorepo 批量发布、发布验证与回滚、钩子系统、发布统计",
   "keywords": [
     "npm",
     "publish",
@@ -22,7 +22,12 @@
     "workspace",
     "pnpm",
     "validation",
-    "2fa"
+    "2fa",
+    "hooks",
+    "cache",
+    "analytics",
+    "precheck",
+    "stats"
   ],
   "author": "LDesign Team",
   "license": "MIT",

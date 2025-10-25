@@ -123,6 +123,30 @@ export default defineConfig({
 
 ## 📖 命令详解
 
+### precheck - 发布前预检查 🆕
+
+```bash
+# 完整的发布前检查
+ldesign-publisher precheck
+
+# 过滤包
+ldesign-publisher precheck --filter "@mycompany/*"
+
+# 严格模式（任何警告都视为失败）
+ldesign-publisher precheck --strict
+
+# JSON 输出
+ldesign-publisher precheck --json
+```
+
+**检查内容：**
+- ✅ 配置文件验证
+- ✅ Git 状态检查（工作区、分支）
+- ✅ 依赖关系验证（循环依赖检测）
+- ✅ 包内容验证（必需文件、敏感信息扫描）
+- ✅ 环境检查（Node.js、NPM 版本）
+- ✅ NPM 凭证检查
+
 ### publish - 发布包
 
 ```bash
@@ -198,6 +222,28 @@ ldesign-publisher rollback @mypackage --version 1.0.0 \\
   --revert-git
 ```
 
+### stats - 查看统计 🆕
+
+```bash
+# 查看发布统计
+ldesign-publisher stats
+
+# 显示最近20次发布
+ldesign-publisher stats --recent 20
+
+# JSON 输出
+ldesign-publisher stats --json
+
+# 清除统计数据
+ldesign-publisher stats --clear
+```
+
+**统计内容：**
+- 📊 总发布次数、成功率
+- ⏱️ 平均耗时、最快/最慢记录
+- 📅 按月统计
+- 📝 最近发布历史
+
 ## 🔧 API 使用
 
 ```typescript
@@ -206,6 +252,9 @@ import {
   createVersionManager,
   createChangelogGenerator,
   createRegistryManager,
+  createHookManager,
+  createPublishAnalytics,
+  defineConfig,
 } from '@ldesign/publisher'
 
 // 发布管理
@@ -235,6 +284,22 @@ registryManager.addRegistry('custom', {
   url: 'https://npm.custom.com',
   token: 'xxx',
 })
+
+// 钩子管理 🆕
+const hookManager = createHookManager({
+  prePublish: async () => {
+    console.log('准备发布...')
+  },
+  postPublish: async (report) => {
+    console.log(`发布完成！成功: ${report.published.length}`)
+  }
+})
+
+// 发布统计 🆕
+const analytics = createPublishAnalytics()
+const stats = await analytics.getStatistics()
+console.log(`成功率: ${stats.successRate}%`)
+await analytics.printReport()
 ```
 
 ## 🎯 Monorepo 支持

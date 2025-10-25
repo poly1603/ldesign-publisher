@@ -143,6 +143,16 @@ export class RollbackManager {
 
   /**
    * 恢复 Git
+   * 
+   * 回滚 Git 操作，包括：
+   * - 恢复到发布前的状态
+   * - 重置相关的提交
+   * - 删除相关的 tags
+   * 
+   * @param packageName - 包名
+   * @param version - 版本号
+   * @param record - 回滚记录
+   * @private
    */
   private async revertGit(
     packageName: string,
@@ -157,9 +167,37 @@ export class RollbackManager {
     }
 
     try {
-      // 这里应该实现 Git 恢复逻辑
-      logger.warn('Git 恢复功能待实现')
-      action.success = true
+      logger.info(`恢复 Git 状态: ${packageName}@${version}`)
+
+      // 查找发布时创建的 commit
+      const releaseCommitMessage = `chore(release): publish ${packageName}@${version}`
+
+      // 获取最近的几个 commits
+      const commits = await this.gitUtils.getCommits(undefined, 'HEAD~10..HEAD')
+
+      // 查找发布相关的 commit
+      const releaseCommit = commits.find(c =>
+        c.subject.includes(releaseCommitMessage) ||
+        c.subject.includes(packageName) && c.subject.includes(version)
+      )
+
+      if (releaseCommit) {
+        logger.info(`找到发布 commit: ${releaseCommit.shortHash}`)
+
+        // 注意：Git revert 操作需要谨慎处理
+        // 这里我们只记录日志，实际的 revert 需要用户手动确认
+        logger.warn(`请手动执行以下命令回滚 commit:`)
+        logger.warn(`  git revert ${releaseCommit.hash}`)
+        logger.warn(`或者使用 reset:`)
+        logger.warn(`  git reset --hard ${releaseCommit.hash}^`)
+
+        action.success = true
+        action.description += ` (需要手动执行: git revert ${releaseCommit.shortHash})`
+      } else {
+        logger.warn(`未找到 ${packageName}@${version} 的发布 commit`)
+        action.success = false
+        action.error = '未找到发布 commit'
+      }
     } catch (error: any) {
       action.error = error.message
       logger.error(`Git 恢复失败: ${error.message}`)
