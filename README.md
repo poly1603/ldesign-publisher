@@ -14,6 +14,11 @@
 - ⚡ **并行发布** - 支持批量并发发布
 - 🔐 **2FA 支持** - 支持双因素认证
 - 📊 **详细报告** - 完整的发布报告和统计
+- 🔔 **通知系统** 🆕 - 支持钉钉、企业微信、Slack、邮件通知
+- 📝 **配置模板** 🆕 - 5 个预设模板，快速上手
+- 🌟 **初始化向导** 🆕 - 交互式配置生成
+- 🩺 **环境诊断** 🆕 - 自动检测环境问题
+- 🔍 **Dry-run 增强** 🆕 - 详细的发布预览分析
 
 ## 📦 安装
 
@@ -33,6 +38,15 @@ yarn add -D @ldesign/publisher
 ### 命令行使用
 
 ```bash
+# 初始化配置 🆕
+ldesign-publisher init
+
+# 诊断环境 🆕
+ldesign-publisher doctor
+
+# 发布前检查
+ldesign-publisher precheck
+
 # 发布包
 ldesign-publisher publish
 
@@ -44,6 +58,9 @@ ldesign-publisher changelog
 
 # 回滚发布
 ldesign-publisher rollback <package> --version <version>
+
+# 查看统计
+ldesign-publisher stats
 ```
 
 ### 配置文件
@@ -121,9 +138,58 @@ export default defineConfig({
 })
 ```
 
-## 📖 命令详解
+## 📚 命令详解
 
-### precheck - 发布前预检查 🆕
+### init - 初始化配置 🆕
+
+```bash
+# 交互式初始化
+ldesign-publisher init
+
+# 使用指定模板
+ldesign-publisher init --template monorepo
+
+# 生成带注释的配置
+ldesign-publisher init --commented
+
+# 指定格式
+ldesign-publisher init --format js
+
+# 强制覆盖
+ldesign-publisher init --force
+```
+
+**可用模板**：
+- **standard** - 标准发布配置，适合大多数项目
+- **monorepo** - Monorepo 项目配置
+- **beta** - Beta 版本发布配置
+- **hotfix** - 热修复发布配置
+- **minimal** - 最小化配置
+
+### doctor - 环境诊断 🆕
+
+```bash
+# 运行诊断
+ldesign-publisher doctor
+
+# 显示详细信息
+ldesign-publisher doctor --verbose
+
+# JSON 输出
+ldesign-publisher doctor --json
+```
+
+**检查项**：
+- ✅ Node.js 版本检查
+- ✅ 包管理器检查（pnpm）
+- ✅ Git 检查
+- ✅ 配置文件检查
+- ✅ package.json 检查
+- ✅ NPM 认证检查
+- ✅ 工作区状态检查
+- ✅ 依赖安装检查
+
+### precheck - 发布前预检查
 
 ```bash
 # 完整的发布前检查
@@ -386,6 +452,64 @@ packages/
 ```
 
 ## 🛠️ 高级功能
+
+### 通知系统 🆕
+
+支持多种通知渠道，发布成功/失败后自动发送通知：
+
+```typescript
+{
+  notifications: {
+    enabled: true,
+    channels: [
+      // 钉钉
+      {
+        type: 'dingtalk',
+        when: ['success', 'failure'],
+        config: {
+          webhook: process.env.DINGTALK_WEBHOOK,
+          secret: process.env.DINGTALK_SECRET,
+          atAll: false,
+        },
+      },
+      // 企业微信
+      {
+        type: 'wecom',
+        when: ['failure'],  // 只在失败时通知
+        config: {
+          webhook: process.env.WECOM_WEBHOOK,
+        },
+      },
+      // Slack
+      {
+        type: 'slack',
+        config: {
+          webhook: process.env.SLACK_WEBHOOK,
+          channel: '#releases',
+        },
+      },
+      // 自定义 Webhook
+      {
+        type: 'webhook',
+        config: {
+          url: 'https://api.example.com/notify',
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.API_TOKEN}`,
+          },
+        },
+      },
+    ],
+  },
+}
+```
+
+**支持的通知渠道**：
+- 🐝 **钉钉** - 支持签名、@所有人、@指定人员
+- 📢 **企业微信** - 支持 @用户、@手机号
+- 📧 **Slack** - 支持自定义频道、用户名、emoji
+- ✉️ **邮件** - 支持 SMTP（需要 nodemailer）
+- 🔗 **自定义 Webhook** - 支持任意 HTTP API
 
 ### 生命周期钩子
 

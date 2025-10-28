@@ -4,6 +4,7 @@
 
 import type { VersionStrategy, PreReleaseTag } from './version.js'
 import type { ChangelogOptions } from './changelog.js'
+import type { NotificationConfig } from './notification.js'
 
 /**
  * 发布配置
@@ -38,6 +39,9 @@ export interface PublisherConfig {
 
   /** Monorepo 配置 */
   monorepo?: MonorepoOptions
+
+  /** 通知配置 */
+  notifications?: NotificationConfig
 
   /** 并发配置 */
   concurrency?: number

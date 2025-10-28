@@ -13,9 +13,10 @@
 
 export * from './logger.js'
 export * from './error-handler.js'
-export * from './npm-client.js'
 export * from './git-utils.js'
-export * from './workspace-utils.js'
-export * from './security.js'
+export * from './npm-client.js'
 export * from './cache.js'
+export * from './security.js'
+export * from './workspace-utils.js'
+export * from './config-templates.js'
 

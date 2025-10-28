@@ -12,6 +12,8 @@ import { createChangelogCommand } from './commands/changelog.js'
 import { createRollbackCommand } from './commands/rollback.js'
 import { createPrecheckCommand } from './commands/precheck.js'
 import { createStatsCommand } from './commands/stats.js'
+import { createInitCommand } from './commands/init.js'
+import { createDoctorCommand } from './commands/doctor.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -38,12 +40,14 @@ export async function createCLI(): Promise<Command> {
     .version(version)
 
   // 添加命令
+  program.addCommand(createInitCommand())
   program.addCommand(createPublishCommand())
   program.addCommand(createVersionCommand())
   program.addCommand(createChangelogCommand())
   program.addCommand(createRollbackCommand())
   program.addCommand(createPrecheckCommand())
   program.addCommand(createStatsCommand())
+  program.addCommand(createDoctorCommand())
 
   return program
 }

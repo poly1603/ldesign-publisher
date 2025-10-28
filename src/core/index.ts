@@ -20,4 +20,5 @@ export * from './PublishManager.js'
 export * from './RollbackManager.js'
 export * from './HookManager.js'
 export * from './PublishAnalytics.js'
+export * from './NotificationManager.js'
 
