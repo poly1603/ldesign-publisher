@@ -108,9 +108,11 @@ export class MemoryCache<T = any> {
    */
   set(key: string, value: T, ttl?: number): void {
     const expiresAt = Date.now() + (ttl || this.options.ttl)
+    const existingItem = this.cache.get(key)
+    const isNewKey = !existingItem
 
-    // 检查缓存是否已满
-    if (this.cache.size >= this.options.maxSize && !this.cache.has(key)) {
+    // 检查缓存是否已满（仅对新键检查）
+    if (isNewKey && this.cache.size >= this.options.maxSize) {
       this.evictLRU()
     }
 
@@ -118,7 +120,7 @@ export class MemoryCache<T = any> {
       value,
       expiresAt,
       lastAccessed: Date.now(),
-      accessCount: 0,
+      accessCount: existingItem?.accessCount || 0,
     })
 
     logger.verbose(`缓存已设置: ${key}`)
@@ -278,7 +280,7 @@ export class MemoryCache<T = any> {
    */
   private evictLRU(): void {
     let oldestKey: string | null = null
-    let oldestTime = Date.now()
+    let oldestTime = Infinity
 
     for (const [key, item] of this.cache.entries()) {
       if (item.lastAccessed < oldestTime) {

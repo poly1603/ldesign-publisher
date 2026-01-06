@@ -11,7 +11,7 @@
 - ✅ **发布验证** - Git 检查、包验证、敏感信息扫描
 - 🔄 **发布回滚** - 支持 unpublish 和 deprecate
 - 🎨 **友好的 CLI** - 交互式命令行界面
-- ⚡ **并行发布** - 支持批量并发发布
+- ⚡ **并行发布** - 支持批量并发发布，支持重试机制
 - 🔐 **2FA 支持** - 支持双因素认证
 - 📊 **详细报告** - 完整的发布报告和统计
 - 🔔 **通知系统** 🆕 - 支持钉钉、企业微信、Slack、邮件通知
@@ -19,6 +19,8 @@
 - 🌟 **初始化向导** 🆕 - 交互式配置生成
 - 🩺 **环境诊断** 🆕 - 自动检测环境问题
 - 🔍 **Dry-run 增强** 🆕 - 详细的发布预览分析
+- 🔒 **发布锁** 🆕 - 防止并发发布冲突
+- 🛡️ **安全审计** 🆕 - 完整性检查、依赖安全扫描
 
 ## 📦 安装
 
@@ -625,12 +627,275 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
+## 🏗️ 项目架构
+
+```
+src/
+├── cli/                    # CLI 命令实现
+│   ├── commands/           # 各个子命令
+│   └── index.ts            # CLI 入口
+├── constants/              # 常量定义
+│   └── index.ts            # 默认配置、错误码、超时配置等
+├── core/                   # 核心功能模块
+│   ├── analytics.ts        # 发布统计
+│   ├── changelog.ts        # Changelog 生成
+│   ├── config.ts           # 配置管理
+│   ├── doctor.ts           # 环境诊断
+│   ├── hook.ts             # 生命周期钩子
+│   ├── notification.ts     # 通知系统
+│   ├── publish.ts          # 发布管理
+│   ├── registry.ts         # Registry 管理
+│   ├── version.ts          # 版本管理
+│   └── workspace.ts        # 工作空间管理
+├── types/                  # TypeScript 类型定义
+│   ├── branded.ts          # 品牌类型和类型守卫
+│   ├── config.ts           # 配置类型
+│   ├── package.ts          # 包信息类型
+│   └── ...                 # 其他类型定义
+└── utils/                  # 工具函数
+    ├── cache.ts            # LRU 缓存
+    ├── error-handler.ts    # 错误处理
+    ├── git-utils.ts        # Git 操作
+    ├── lock.ts             # 发布锁
+    ├── logger.ts           # 日志工具
+    ├── npm-client.ts       # NPM 客户端
+    ├── progress.ts         # 进度追踪
+    ├── retry.ts            # 重试机制
+    ├── security.ts         # 安全工具
+    └── workspace-utils.ts  # 工作空间工具
+```
+
+## 🔄 重试机制
+
+内置的重试机制提供指数退避策略：
+
+```typescript
+import { retry, retryWithResult, createRetryable } from '@ldesign/publisher'
+
+// 基本重试
+await retry(
+  async () => {
+    // 可能失败的操作
+    await publishPackage(pkg)
+  },
+  {
+    maxRetries: 3,
+    delay: 1000,
+    backoff: 'exponential',
+    onRetry: (error, attempt) => {
+      console.log(`第 ${attempt} 次重试: ${error.message}`)
+    },
+  }
+)
+
+// 获取重试结果
+const result = await retryWithResult(async () => {
+  return await fetchPackageInfo(name)
+})
+
+if (result.success) {
+  console.log(result.data)
+} else {
+  console.error(`所有重试均失败: ${result.error.message}`)
+}
+
+// 创建可重试的函数
+const fetchWithRetry = createRetryable(
+  async (url: string) => {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('Fetch failed')
+    return res.json()
+  },
+  { maxRetries: 5 }
+)
+
+const data = await fetchWithRetry('https://api.example.com')
+```
+
+## 🔒 发布锁
+
+防止并发发布导致的冲突：
+
+```typescript
+import { createPublishLock, withLock } from '@ldesign/publisher'
+
+// 创建发布锁
+const lock = createPublishLock({
+  lockDir: '.publisher',
+  staleTimeout: 10 * 60 * 1000, // 10 分钟后视为过时
+})
+
+// 手动获取/释放锁
+const acquired = await lock.acquire('@mypackage/core')
+if (acquired) {
+  try {
+    await publishPackage('@mypackage/core')
+  } finally {
+    await lock.release('@mypackage/core')
+  }
+}
+
+// 使用 withLock 辅助函数
+await withLock(lock, '@mypackage/core', async () => {
+  await publishPackage('@mypackage/core')
+})
+
+// 检查锁状态
+if (lock.isLocked('@mypackage/core')) {
+  const info = await lock.getHolderInfo('@mypackage/core')
+  console.log(`被进程 ${info.pid} 锁定于 ${new Date(info.acquiredAt)}`)
+}
+```
+
+## 📊 进度追踪
+
+多任务进度追踪和 ETA 计算：
+
+```typescript
+import { createProgressTracker, SimpleProgress } from '@ldesign/publisher'
+
+// 多任务进度追踪
+const progress = createProgressTracker({
+  showEta: true,
+  showBar: true,
+})
+
+// 添加任务
+packages.forEach(pkg => {
+  progress.addTask(pkg.name, 100)
+})
+
+progress.start()
+
+for (const pkg of packages) {
+  progress.startTask(pkg.name)
+  
+  for (let i = 0; i < 100; i++) {
+    await doWork(pkg, i)
+    progress.updateTask(pkg.name, i + 1)
+  }
+  
+  progress.completeTask(pkg.name)
+}
+
+progress.finish()
+console.log(progress.generateReport())
+
+// 简单计数器
+const counter = new SimpleProgress(10)
+for (let i = 0; i < 10; i++) {
+  counter.increment(`处理项目 ${i + 1}`)
+}
+counter.finish()
+```
+
+## 🛡️ 安全审计
+
+完整的安全检查功能：
+
+```typescript
+import {
+  performSecurityAudit,
+  checkPackageIntegrity,
+  checkDependencySecurity,
+  calculateFileHash,
+} from '@ldesign/publisher'
+
+// 完整安全审计
+const auditResult = await performSecurityAudit(process.cwd(), {
+  enableSensitiveFileCheck: true,
+  enableSensitiveContentCheck: true,
+  enableIgnoreFileCheck: true,
+  enablePackageSizeCheck: true,
+  enableDependencyCheck: true,
+  maxPackageSize: 10 * 1024 * 1024, // 10MB
+})
+
+console.log(auditResult.summary)
+// ✅ 安全检查通过 或
+// ❌ 安全检查未通过:
+//   - 发现 2 个敏感文件
+//   - 发现 3 处敏感内容
+
+// 包完整性检查
+const integrityResult = await checkPackageIntegrity(process.cwd())
+if (!integrityResult.passed) {
+  console.log('缺失文件:', integrityResult.missingFiles)
+  console.log('哈希不匹配:', integrityResult.mismatchedFiles)
+}
+
+// 依赖安全检查
+const depSecurity = await checkDependencySecurity(process.cwd())
+if (!depSecurity.safe) {
+  console.log(`发现 ${depSecurity.critical} 个严重漏洞`)
+  console.log(`发现 ${depSecurity.high} 个高危漏洞`)
+}
+
+// 计算文件哈希
+const hash = await calculateFileHash('package.json')
+console.log(`package.json SHA256: ${hash}`)
+```
+
+## 🎨 类型安全
+
+提供品牌类型和类型守卫函数：
+
+```typescript
+import {
+  type PackageName,
+  type SemverVersion,
+  createPackageName,
+  createSemverVersion,
+  isValidPackageName,
+  isValidSemver,
+  isDefined,
+  isNonEmptyArray,
+  type Result,
+  success,
+  failure,
+} from '@ldesign/publisher'
+
+// 品牌类型确保类型安全
+const pkgName: PackageName = createPackageName('@mycompany/core')
+const version: SemverVersion = createSemverVersion('1.0.0')
+
+// 类型守卫
+if (isValidPackageName(input)) {
+  // input 现在是 PackageName 类型
+  console.log(`有效包名: ${input}`)
+}
+
+if (isNonEmptyArray(packages)) {
+  // packages 现在是非空数组
+  const first = packages[0] // 安全访问
+}
+
+// Result 类型进行错误处理
+function parseVersion(input: string): Result<SemverVersion, string> {
+  if (isValidSemver(input)) {
+    return success(input)
+  }
+  return failure(`无效的版本号: ${input}`)
+}
+
+const result = parseVersion('1.0.0')
+if (result.success) {
+  console.log(`版本: ${result.value}`)
+} else {
+  console.error(result.error)
+}
+```
+
 ## 📚 更多资源
 
 - [完整文档](https://ldesign.dev/publisher)
 - [API 参考](https://ldesign.dev/publisher/api)
 - [示例项目](https://github.com/ldesign/examples)
 - [常见问题](https://ldesign.dev/publisher/faq)
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
 
 ## 📄 许可证
 

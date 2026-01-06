@@ -89,21 +89,27 @@ describe('MemoryCache', () => {
     expect(cache.has('key2')).toBe(true)
   })
 
-  it('should evict LRU when cache is full', () => {
+  it('should evict LRU when cache is full', async () => {
     const smallCache = new MemoryCache({ maxSize: 3 })
 
     smallCache.set('key1', 'value1')
+    await new Promise(resolve => setTimeout(resolve, 10))
     smallCache.set('key2', 'value2')
+    await new Promise(resolve => setTimeout(resolve, 10))
     smallCache.set('key3', 'value3')
 
     // Access key1 to make it recently used
+    await new Promise(resolve => setTimeout(resolve, 10))
     smallCache.get('key1')
 
-    // Adding key4 should evict key2 (least recently used)
+    // Adding key4 should evict key2 (least recently used after key1 was accessed)
     smallCache.set('key4', 'value4')
 
     expect(smallCache.size).toBe(3)
     expect(smallCache.has('key2')).toBe(false)
+    expect(smallCache.has('key1')).toBe(true)  // key1 was accessed, should be kept
+    expect(smallCache.has('key3')).toBe(true)
+    expect(smallCache.has('key4')).toBe(true)
 
     smallCache.destroy()
   })
